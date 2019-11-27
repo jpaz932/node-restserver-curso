@@ -3,9 +3,45 @@ const bcrypt  = require('bcrypt');
 const _       = require('underscore');
 const Usuario = require('../models/usuario');
 
+const {verificaToken, verificarAdmin} = require('../middlewares/autenticacion');
+
 const app = express();
 
-app.post('/usuario', function (req, res) {
+// Obtener usuarios
+app.get('/usuario', verificaToken, (req, res) => {
+
+    let desde = req.query.desde || 0;
+    let limit = req.query.limit || 5;
+
+    desde = Number(desde);
+    limit = Number(limit);
+
+    Usuario.find({estado:true}, 'nombre email estado').skip(desde).limit(limit).exec((err, usuarios) => {
+
+        if(err)
+        {
+            return res.status(400).json({
+                ok: false,
+                err
+            });
+        }
+
+        Usuario.count({estado:true}, (err, conteo) => {
+
+            res.json({
+                ok: true,
+                usuarios,
+                conteo
+            })
+
+        });
+
+    });
+
+});
+
+// crear usuario
+app.post('/usuario', [verificaToken, verificarAdmin], function (req, res) {
     let body = req.body;
 
     let usuario = Usuario({
@@ -36,7 +72,8 @@ app.post('/usuario', function (req, res) {
 
 });
 
-app.put('/usuario/:id', function(req, res) {
+// Actualizar usuario
+app.put('/usuario/:id', [verificaToken, verificarAdmin], function(req, res) {
 
     let id   = req.params.id;
     let body = _.pick(req.body, ['nombre', 'email', 'img', 'role', 'estado']);
@@ -60,40 +97,8 @@ app.put('/usuario/:id', function(req, res) {
 
 });
 
-app.get('/usuario', function(req, res) {
-
-    let desde = req.query.desde || 0;
-    let limit = req.query.limit || 5;
-
-    desde = Number(desde);
-    limit = Number(limit);
-
-    Usuario.find({estado:true}, 'nombre email estado').skip(desde).limit(limit).exec((err, usuarios) => {
-
-        if(err)
-        {
-            return res.status(400).json({
-                ok: false,
-                err
-            });
-        }
-
-        Usuario.count({estado:true}, (err, conteo) => {
-
-            res.json({
-                ok: true,
-                usuarios,
-                conteo
-            })
-
-        });
-
-
-    });
-
-});
-
-app.delete('/usuario/:id', function(req, res) {
+// cambiar estado usuario
+app.delete('/usuario/:id', [verificaToken, verificarAdmin], function(req, res) {
 
     let id   = req.params.id;
     let body = _.pick(req.body, ['estado']);
