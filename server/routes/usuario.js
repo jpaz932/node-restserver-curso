@@ -157,7 +157,6 @@ app.delete('/usuario/:id', [verificaToken, verificarAdmin], function(req, res) {
     //     });
     //
     // });
-
-})
+});
 
 module.exports = app;
